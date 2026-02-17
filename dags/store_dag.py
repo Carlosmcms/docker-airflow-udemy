@@ -2,6 +2,7 @@ from airflow import DAG
 from datetime import datetime, timedelta
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator
+from airflow.operators.mysql_operator import MySqlOperator
 
 import sys
 sys.path.append('../helpers')
@@ -18,6 +19,7 @@ dag = DAG(
   'store_dag',
   default_args = default_args,
   schedule_interval = '@daily',
+  template_searchpath = ['/usr/local/airflow/sql_files'],
   catchup = False
 )
 
@@ -37,4 +39,12 @@ clean_raw_csv = PythonOperator (
   dag = dag
 )
 
-check_file_exists >> clean_raw_csv
+# Task 3: Create table clean_store_transactions in MySQL database
+create_table_clean_store_transactions = MySqlOperator(
+  task_id = 'create_mysql_table',
+  mysql_conn_id = "mysql_conn",
+  sql = "create_table.sql",
+  dag = dag
+)
+
+check_file_exists >> clean_raw_csv >> create_table_clean_store_transactions
